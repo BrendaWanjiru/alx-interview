@@ -1,32 +1,20 @@
 #!/usr/bin/node
-// Script that prints all characters of a Star Wars movie
-// The first position argument is the Movie ID - example: 3 = “Return of the Jedi”
-// Display one character name by line in the same order of
-// the list “characters” in the /films/ response.
-// endpoint: https://swapi-api.alx-tools.com/api/films/:id
-
 
 const request = require('request');
-const API_URL = 'https://swapi-api.hbtn.io/api';
+const movieId = parseInt(process.argv[2], 10);
 
-if (process.argv.length > 2) {
-  request(`${API_URL}/films/${process.argv[2]}/`, (err, _, body) => {
-    if (err) {
-      console.log(err);
-    }
-    const charactersURL = JSON.parse(body).characters;
-    const charactersName = charactersURL.map(
-      url => new Promise((resolve, reject) => {
-        request(url, (promiseErr, __, charactersReqBody) => {
-          if (promiseErr) {
-            reject(promiseErr);
-          }
-          resolve(JSON.parse(charactersReqBody).name);
-        });
-      }));
+request.get(`https://swapi-api.alx-tools.com/api/films/${movieId}/`, async (error, response, body) => {
+  if (error) return;
+  const movie = JSON.parse(body);
 
-    Promise.all(charactersName)
-      .then(names => console.log(names.join('\n')))
-      .catch(allErr => console.log(allErr));
-  });
-}
+  for (const character of movie.characters) {
+    const characterName = await new Promise((resolve, reject) => {
+      request.get(character, (error, response, body) => {
+        if (error) return;
+        const characterInfo = JSON.parse(body);
+        resolve(characterInfo.name);
+      });
+    });
+    console.log(characterName);
+  }
+});
